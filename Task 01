@@ -1,0 +1,85 @@
+
+import numpy as np # linear algebra
+import pandas as pd 
+import os
+for dirname, _, filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        print(os.path.join(dirname, filename))
+
+import pandas as pd
+
+df = pd.read_csv("iris_data.csv")
+df.head()
+
+# drop Id column
+df = df.drop(columns=['Id'], errors='ignore')
+
+# if Species has text names like "Iris-setosa", standardize (optional)
+df['Species'] = df['Species'].str.replace('Iris-', '', regex=False)
+
+df.head()
+
+from sklearn.preprocessing import LabelEncoder
+
+X = df.drop(columns=['Species'])
+y = df['Species']
+
+le = LabelEncoder()
+y_encoded = le.fit_transform(y)
+
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y_encoded, test_size=0.20, random_state=42, stratify=y_encoded
+)
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+
+lr = LogisticRegression(max_iter=500, random_state=42)
+lr.fit(X_train, y_train)
+
+y_pred_lr = lr.predict(X_test)
+print("Logistic Regression accuracy:", accuracy_score(y_test, y_pred_lr))
+print(classification_report(y_test, y_pred_lr, target_names=le.classes_))
+
+from sklearn.ensemble import RandomForestClassifier
+
+rf = RandomForestClassifier(n_estimators=100, random_state=42)
+rf.fit(X_train, y_train)
+
+y_pred_rf = rf.predict(X_test)
+print("Random Forest accuracy:", accuracy_score(y_test, y_pred_rf))
+print(classification_report(y_test, y_pred_rf, target_names=le.classes_))
+
+
+from sklearn.model_selection import cross_val_score
+import numpy as np
+
+scores = cross_val_score(rf, X, y_encoded, cv=5, scoring='accuracy')
+print("5-fold CV accuracy: mean = {:.3f}, std = {:.3f}".format(scores.mean(), scores.std()))
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
+
+cm = confusion_matrix(y_test, y_pred_rf)
+plt.figure(figsize=(5,4))
+sns.heatmap(cm, annot=True, fmt='d', xticklabels=le.classes_, yticklabels=le.classes_)
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.title('Confusion Matrix - Random Forest')
+plt.show()
+
+feat_imp = pd.Series(rf.feature_importances_, index=X.columns).sort_values(ascending=False)
+feat_imp
+feat_imp.plot.bar()
+plt.title('Feature Importances')
+plt.show()
+
+import seaborn as sns
+sns.pairplot(df, hue='Species')
+plt.show()
+
+import joblib
+joblib.dump(rf, 'random_forest_iris.pkl')   # will appear in /kaggle/working after run
+joblib.dump(le, 'label_encoder.pkl')                                                            
