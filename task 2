@@ -1,0 +1,515 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import plotly.figure_factory as ff
+
+from plotly.offline import init_notebook_mode, iplot
+init_notebook_mode(connected=True)
+
+import plotly.express as px
+import plotly.graph_objects as go
+
+from IPython.display import IFrame
+import seaborn as sns
+import numpy as np
+
+# Load datasets
+df = pd.read_csv("Unemployment_in_India.csv")
+df_2020 = pd.read_csv("Unemployment_Rate_upto_11_2020.csv")
+
+# Show first 10 rows
+print(df.head(10))
+
+
+# Dataset information
+print("\n📌 INFO: Main Dataset\n")
+df.info()
+
+print("\n" + "="*80 + "\n")
+
+print("\n📌 INFO: 2020 Dataset\n")
+df_2020.info()
+
+print("\n" + "="*80 + "\n")
+
+# Statistical summary
+print("\n📊 Statistical Summary for Main Dataset\n")
+print(df.describe())
+
+print("\n" + "="*80 + "\n")
+
+print("\n📊 Statistical Summary for 2020 Dataset\n")
+print(df_2020.describe())
+
+print("\n" + "="*80 + "\n")
+
+# Shape of datasets
+print(f"📁 Main dataset shape: {df.shape}")
+print(f"📁 2020 dataset shape: {df_2020.shape}")
+
+
+# Clean unwanted spaces in column names
+df.columns = df.columns.str.strip()
+df_2020.columns = df_2020.columns.str.strip()
+
+print("✔ Column names cleaned successfully!\n")
+
+# Show cleaned column names
+print("Main dataset columns:", df.columns.tolist())
+print("2020 dataset columns:", df_2020.columns.tolist())
+
+
+# Remove extra spaces and ensure the Date column is clean text first
+df['Date'] = df['Date'].astype(str).str.strip()
+df_2020['Date'] = df_2020['Date'].astype(str).str.strip()
+
+# Convert to datetime format (DD-MM-YYYY)
+df['Date'] = pd.to_datetime(df['Date'], format='%d-%m-%Y', errors='coerce')
+df_2020['Date'] = pd.to_datetime(df_2020['Date'], format='%d-%m-%Y', errors='coerce')
+
+print("✔ Date format converted successfully!\n")
+
+# Verify the conversion
+print("Main dataset date sample:\n", df['Date'].head())
+print("\n2020 dataset date sample:\n", df_2020['Date'].head())
+
+
+# ---- Clean whitespace in Date column ----
+df['Date'] = df['Date'].astype(str).str.strip()
+df_2020['Date'] = df_2020['Date'].astype(str).str.strip()
+
+# ---- Convert to datetime format ----
+df['Date'] = pd.to_datetime(df['Date'], format='%d-%m-%Y', errors='coerce')
+df_2020['Date'] = pd.to_datetime(df_2020['Date'], format='%d-%m-%Y', errors='coerce')
+
+# ---- Extract month name and month number ----
+df['Month_int'] = df['Date'].dt.month
+df['Month'] = df['Date'].dt.strftime('%B')
+
+df_2020['Month_int'] = df_2020['Date'].dt.month
+df_2020['Month'] = df_2020['Date'].dt.strftime('%B')
+
+# ---- Drop unnecessary columns safely ----
+if 'Frequency' in df.columns:
+    df = df.drop('Frequency', axis=1)
+
+cols_to_drop_2020 = ['Frequency', 'Region.1', 'longitude', 'latitude']
+df_2020 = df_2020.drop(columns=[col for col in cols_to_drop_2020 if col in df_2020.columns])
+
+# ---- Output cleaned data ----
+print("\n📌 Cleaned Main Dataset:\n")
+print(df.head())
+
+print("\n" + "="*80 + "\n")
+
+print("\n📌 Cleaned 2020 Dataset:\n")
+print(df_2020.head())
+
+
+# Combine both datasets
+combined_df = pd.concat([df, df_2020], ignore_index=True)
+
+print(f"\n📁 Combined Dataset Shape: {combined_df.shape}\n")
+
+print("🔹 First 5 rows:")
+print(combined_df.head())
+
+print("\n" + "="*80 + "\n")
+
+print("🔹 Last 5 rows:")
+print(combined_df.tail())
+
+
+
+# Grouping and calculating statistics
+unemployment_by_region_sum = combined_df.groupby('Region')['Estimated Unemployment Rate (%)'].sum().sort_values(ascending=False)
+unemployment_by_region_mean = combined_df.groupby('Region')['Estimated Unemployment Rate (%)'].mean().sort_values(ascending=False)
+unemployment_by_region_min = combined_df.groupby('Region')['Estimated Unemployment Rate (%)'].min()
+unemployment_by_region_max = combined_df.groupby('Region')['Estimated Unemployment Rate (%)'].max()
+
+print("\n📌 TOTAL Unemployment by Region (Sum of Rates):\n")
+print(unemployment_by_region_sum)
+
+print("\n" + "="*90 + "\n")
+
+print("\n📌 AVERAGE Unemployment by Region:\n")
+print(unemployment_by_region_mean)
+
+print("\n" + "="*90 + "\n")
+
+print("\n📌 MINIMUM Recorded Unemployment by Region:\n")
+print(unemployment_by_region_min)
+
+print("\n" + "="*90 + "\n")
+
+print("\n📌 MAXIMUM Recorded Unemployment by Region:\n")
+print(unemployment_by_region_max)
+
+
+# Ensure correct month order
+month_order = ['January','February','March','April','May','June',
+               'July','August','September','October','November','December']
+
+# Group and calculate required stats
+unemployment_by_month_sum = (
+    combined_df.groupby('Month')['Estimated Unemployment Rate (%)']
+    .sum()
+    .reindex(month_order)
+)
+
+unemployment_by_month_mean = (
+    combined_df.groupby('Month')['Estimated Unemployment Rate (%)']
+    .mean()
+    .reindex(month_order)
+)
+
+print("\n📌 Total Unemployment by Month (Sum of Rates):\n")
+print(unemployment_by_month_sum)
+
+print("\n" + "="*90 + "\n")
+
+print("\n📌 Average Unemployment by Month:\n")
+print(unemployment_by_month_mean)
+
+
+employed_by_region_sum = combined_df.groupby('Region')['Estimated Employed'].sum().sort_values(ascending=False)
+employed_by_region_mean = combined_df.groupby('Region')['Estimated Employed'].mean().sort_values(ascending=False)
+
+print("Total employment by region (sum):")
+print(employed_by_region_sum)
+print("\n" + "="*80 + "\n")
+print("Average employment by region (mean):")
+print(employed_by_region_mean)
+
+
+
+# Ensure correct calendar month order
+month_order = ['January','February','March','April','May','June',
+               'July','August','September','October','November','December']
+
+# Group by Month
+employed_by_month_sum = (
+    combined_df.groupby('Month')['Estimated Employed']
+    .sum()
+    .reindex(month_order)
+)
+
+employed_by_month_mean = (
+    combined_df.groupby('Month')['Estimated Employed']
+    .mean()
+    .reindex(month_order)
+)
+
+print("\n📌 Total Employment by Month (Sum of Counts):\n")
+print(employed_by_month_sum)
+
+print("\n" + "="*90 + "\n")
+
+print("\n📌 Average Employment by Month:\n")
+print(employed_by_month_mean)
+
+
+
+import plotly.express as px
+
+# ---- Total Unemployment by Region (Top 10) ----
+fig1 = px.bar(
+    x=unemployment_by_region_sum.head(10).values,
+    y=unemployment_by_region_sum.head(10).index,
+    orientation='h',
+    title='Total Unemployment by Region (Top 10)',
+    labels={'x': 'Total Unemployment Rate (%)', 'y': 'Region'},
+    color=unemployment_by_region_sum.head(10).values,
+    color_continuous_scale='Viridis'
+)
+fig1.show()  # Use show() in IDLE
+
+# ---- Total Unemployment by Month ----
+month_order = ['January','February','March','April','May','June',
+               'July','August','September','October','November','December']
+
+fig2 = px.bar(
+    x=month_order,
+    y=unemployment_by_month_sum.reindex(month_order).values,
+    title='Total Unemployment by Month',
+    labels={'x': 'Month', 'y': 'Total Unemployment Rate (%)'},
+    color=unemployment_by_month_sum.reindex(month_order).values,
+    color_continuous_scale='Reds'
+)
+fig2.show()
+
+# ---- Total Employment by Region (Top 10) ----
+fig3 = px.bar(
+    x=employed_by_region_sum.head(10).values,
+    y=employed_by_region_sum.head(10).index,
+    orientation='h',
+    title='Total Employment by Region (Top 10)',
+    labels={'x': 'Total Employed', 'y': 'Region'},
+    color=employed_by_region_sum.head(10).values,
+    color_continuous_scale='Greens'
+)
+fig3.show()
+
+# ---- Total Employment by Month ----
+fig4 = px.bar(
+    x=month_order,
+    y=employed_by_month_sum.reindex(month_order).values,
+    title='Total Employment by Month',
+    labels={'x': 'Month', 'y': 'Total Employed'},
+    color=employed_by_month_sum.reindex(month_order).values,
+    color_continuous_scale='Blues'
+)
+fig4.show()
+
+
+# ---- Unemployment Rate Summary ----
+print("📊 Statistical Summary of Unemployment Rates (%):\n")
+print(combined_df['Estimated Unemployment Rate (%)'].describe())
+
+print("\n" + "="*80 + "\n")
+
+# ---- Employment Summary ----
+print("📊 Statistical Summary of Employment (Estimated Employed):\n")
+print(combined_df['Estimated Employed'].describe())
+
+print("\n" + "="*80 + "\n")
+
+# ---- Labour Participation Rate Summary ----
+print("📊 Statistical Summary of Labour Participation Rate (%):\n")
+print(combined_df['Estimated Labour Participation Rate (%)'].describe())
+
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# ---- Calculate correlation matrix ----
+correlation_matrix = combined_df[['Estimated Unemployment Rate (%)', 
+                                  'Estimated Employed', 
+                                  'Estimated Labour Participation Rate (%)']].corr()
+
+print("📊 Correlation Matrix:\n")
+print(correlation_matrix)
+print("\n" + "="*80 + "\n")
+
+# ---- Plot heatmap ----
+plt.figure(figsize=(8,6))
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', center=0, fmt='.2f')
+plt.title('Correlation Between Unemployment, Employment, and Labour Participation')
+plt.tight_layout()
+plt.show()
+
+
+import matplotlib.pyplot as plt
+
+# Create subplots
+fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+
+# ---- Histogram: Unemployment Rate ----
+axes[0].hist(combined_df['Estimated Unemployment Rate (%)'], bins=30, color='red', edgecolor='black', alpha=0.7)
+axes[0].set_title('Distribution of Unemployment Rates')
+axes[0].set_xlabel('Unemployment Rate (%)')
+axes[0].set_ylabel('Frequency')
+
+# ---- Histogram: Employment ----
+axes[1].hist(combined_df['Estimated Employed'], bins=30, color='green', edgecolor='black', alpha=0.7)
+axes[1].set_title('Distribution of Employment')
+axes[1].set_xlabel('Estimated Employed')
+axes[1].set_ylabel('Frequency')
+
+# ---- Histogram: Labour Participation Rate ----
+axes[2].hist(combined_df['Estimated Labour Participation Rate (%)'], bins=30, color='blue', edgecolor='black', alpha=0.7)
+axes[2].set_title('Distribution of Labour Participation Rates')
+axes[2].set_xlabel('Labour Participation Rate (%)')
+axes[2].set_ylabel('Frequency')
+
+# Adjust layout for clarity
+plt.tight_layout()
+plt.show()
+
+
+import matplotlib.pyplot as plt
+
+# Create figure
+fig, ax = plt.subplots(figsize=(14, 6))
+
+# Select top 5 regions by total unemployment
+top_regions = unemployment_by_region_sum.head(5).index
+
+# Plot time series for each region
+for region in top_regions:
+    region_data = combined_df[combined_df['Region'] == region].sort_values('Date')
+    ax.plot(region_data['Date'], region_data['Estimated Unemployment Rate (%)'],
+            marker='o', label=region, linewidth=2)
+
+# Customize plot
+ax.set_xlabel('Date', fontsize=12)
+ax.set_ylabel('Unemployment Rate (%)', fontsize=12)
+ax.set_title('Unemployment Trends Over Time - Top 5 Regions', fontsize=14)
+ax.legend(loc='best')
+ax.grid(True, alpha=0.3)
+plt.xticks(rotation=45)
+plt.tight_layout()
+
+# Show plot
+plt.show()
+
+import matplotlib.pyplot as plt
+
+# Create figure
+fig, ax = plt.subplots(figsize=(14, 6))
+
+# Select top 5 regions by total unemployment
+top_regions = unemployment_by_region_sum.head(5).index
+
+# Plot time series for each region
+for region in top_regions:
+    region_data = combined_df[combined_df['Region'] == region].sort_values('Date')
+    ax.plot(region_data['Date'], region_data['Estimated Unemployment Rate (%)'],
+            marker='o', label=region, linewidth=2)
+
+# Customize plot
+ax.set_xlabel('Date', fontsize=12)
+ax.set_ylabel('Unemployment Rate (%)', fontsize=12)
+ax.set_title('Unemployment Trends Over Time - Top 5 Regions', fontsize=14)
+ax.legend(loc='best')
+ax.grid(True, alpha=0.3)
+plt.xticks(rotation=45)
+plt.tight_layout()
+
+# Show plot
+plt.show()
+
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+
+# Define month order for correct chronological plotting
+month_order = ['January', 'February', 'March', 'April', 'May', 'June', 
+               'July', 'August', 'September', 'October', 'November', 'December']
+
+# Convert Month column to categorical type with defined order
+combined_df['Month'] = pd.Categorical(combined_df['Month'], categories=month_order, ordered=True)
+
+# Sort by Month
+combined_df_sorted = combined_df.sort_values('Month')
+
+# Plot boxplot
+plt.figure(figsize=(14, 6))
+sns.boxplot(data=combined_df_sorted, x='Month', y='Estimated Unemployment Rate (%)', palette='Set2')
+plt.title('Unemployment Rate Distribution by Month', fontsize=14)
+plt.xlabel('Month', fontsize=12)
+plt.ylabel('Unemployment Rate (%)', fontsize=12)
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Plot violin plot for top 5 regions
+plt.figure(figsize=(14, 6))
+sns.violinplot(
+    data=combined_df[combined_df['Region'].isin(top_regions)], 
+    x='Region', 
+    y='Estimated Unemployment Rate (%)', 
+    palette='muted'
+)
+
+# Customize plot
+plt.title('Unemployment Rate Distribution by Region (Top 5)', fontsize=14)
+plt.xlabel('Region', fontsize=12)
+plt.ylabel('Unemployment Rate (%)', fontsize=12)
+plt.tight_layout()
+
+# Show plot
+plt.show()
+
+
+import matplotlib.pyplot as plt
+
+# Create scatter plot
+plt.figure(figsize=(12, 7))
+scatter = plt.scatter(
+    combined_df['Estimated Employed'], 
+    combined_df['Estimated Unemployment Rate (%)'],
+    alpha=0.6,       # transparency
+    s=50,            # marker size
+    c=combined_df['Estimated Labour Participation Rate (%)'],  # color by labour participation
+    cmap='viridis'
+)
+
+# Customize axes and title
+plt.xlabel('Estimated Employed', fontsize=12)
+plt.ylabel('Unemployment Rate (%)', fontsize=12)
+plt.title('Relationship Between Employment and Unemployment', fontsize=14)
+
+# Add colorbar for labour participation rate
+cbar = plt.colorbar(scatter)
+cbar.set_label('Labour Participation Rate (%)', fontsize=11)
+
+# Add grid
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+
+# Show plot
+plt.show()
+
+
+
+
+import matplotlib.pyplot as plt
+
+# Create scatter plot
+plt.figure(figsize=(12, 7))
+scatter = plt.scatter(
+    combined_df['Estimated Employed'], 
+    combined_df['Estimated Unemployment Rate (%)'],
+    alpha=0.6,       # transparency
+    s=50,            # marker size
+    c=combined_df['Estimated Labour Participation Rate (%)'],  # color by labour participation
+    cmap='viridis'
+)
+
+# Customize axes and title
+plt.xlabel('Estimated Employed', fontsize=12)
+plt.ylabel('Unemployment Rate (%)', fontsize=12)
+plt.title('Relationship Between Employment and Unemployment', fontsize=14)
+
+# Add colorbar for labour participation rate
+cbar = plt.colorbar(scatter)
+cbar.set_label('Labour Participation Rate (%)', fontsize=11)
+
+# Add grid
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+
+# Show plot
+plt.show()
+
+
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# ---- Summary statistics by Area (Rural vs Urban) ----
+rural_urban_comparison = combined_df.groupby('Area').agg({
+    'Estimated Unemployment Rate (%)': ['count', 'mean', 'std', 'min', 'max'],
+    'Estimated Employed': ['mean'],
+    'Estimated Labour Participation Rate (%)': ['mean']
+})
+
+print("📊 Rural vs Urban Unemployment Comparison:\n")
+print(rural_urban_comparison)
+print("\n" + "="*80 + "\n")
+
+# ---- Boxplot for Unemployment Rate by Area ----
+plt.figure(figsize=(10, 6))
+combined_df.boxplot(column='Estimated Unemployment Rate (%)', by='Area', grid=False)
+plt.title('Unemployment Rate Comparison: Rural vs Urban', fontsize=14)
+plt.suptitle('')  # Remove default title
+plt.xlabel('Area Type', fontsize=12)
+plt.ylabel('Unemployment Rate (%)', fontsize=12)
+plt.tight_layout()
+plt.show()
+
+
