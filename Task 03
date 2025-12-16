@@ -1,0 +1,381 @@
+# Import libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import plotly.express as px
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
+from sklearn.metrics import r2_score, mean_squared_error
+
+import warnings
+warnings.filterwarnings('ignore')
+
+# ---------------------------
+# Load Dataset
+# ---------------------------
+df = pd.read_csv("car_data.csv")
+print(df.shape)
+print(df.head())
+print(df.info())
+
+# ---------------------------
+# Data Preprocessing
+# ---------------------------
+# Example: Create a new feature "Car_Age"
+df['Car_Age'] = 2025 - df['Year']  # Adjust according to current year
+df = df.drop(['Year', 'Car_Name'], axis=1)  # Drop irrelevant columns
+
+# Separate features and target
+target_column = 'Selling_Price'
+X = df.drop(target_column, axis=1)
+y = df[target_column]
+
+# Identify categorical and numerical columns
+categorical_cols = X.select_dtypes(include=['object']).columns.tolist()
+numerical_cols = X.select_dtypes(include=['int64', 'float64']).columns.tolist()
+
+# One-hot encode categorical features
+encoder = OneHotEncoder(sparse_output=False, drop='first')  
+X_encoded = pd.DataFrame(encoder.fit_transform(X[categorical_cols]), columns=encoder.get_feature_names_out(categorical_cols))
+
+# Combine numerical and encoded categorical features
+X_final = pd.concat([X[numerical_cols].reset_index(drop=True), X_encoded.reset_index(drop=True)], axis=1)
+
+# Optional: Scale features
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X_final)
+
+# ---------------------------
+# Split Dataset
+# ---------------------------
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
+
+# ---------------------------
+# Train Models
+# ---------------------------
+# Random Forest
+rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
+rf_model.fit(X_train, y_train)
+y_pred_rf = rf_model.predict(X_test)
+
+# XGBoost
+xgb_model = XGBRegressor(n_estimators=100, learning_rate=0.1, random_state=42)
+xgb_model.fit(X_train, y_train)
+y_pred_xgb = xgb_model.predict(X_test)
+
+# ---------------------------
+# Evaluate Models
+# ---------------------------
+from math import sqrt
+
+def evaluate_model(y_true, y_pred, model_name):
+    r2 = r2_score(y_true, y_pred)
+    rmse = sqrt(mean_squared_error(y_true, y_pred))  # manually take sqrt
+    print(f"{model_name} Performance:")
+    print(f"R2 Score: {r2:.4f}")
+    print(f"RMSE: {rmse:.4f}\n")
+
+# ---------------------------
+# Optional: Visualization
+# ---------------------------
+plt.figure(figsize=(6,6))
+sns.scatterplot(x=y_test, y=y_pred_rf, color='blue', label='RF Predictions')
+sns.scatterplot(x=y_test, y=y_pred_xgb, color='red', label='XGB Predictions')
+plt.xlabel('Actual Selling Price')
+plt.ylabel('Predicted Selling Price')
+plt.title('Actual vs Predicted Selling Price')
+plt.legend()
+plt.show()
+import pandas as pd
+
+# Load the dataset
+df = pd.read_csv("car_data.csv")
+
+# Display first 5 rows
+print(df.head())
+
+# Basic info about dataset
+print("\nDataset info:")
+print(df.info())
+
+# Summary statistics for numerical columns
+print("\nSummary statistics:")
+print(df.describe())
+
+# Check for missing values
+print("\nMissing values:")
+print(df.isnull().sum())
+
+df.shape
+df.isnull().sum()
+df.describe()
+df.columns
+print(df.columns)
+df = pd.get_dummies(df, drop_first=True)
+df.head()
+df.columns
+df.shape
+df.duplicated().sum()
+df = df.drop_duplicates()
+print("The duplicate values is:", df.duplicated().sum())
+df.describe().style.format(precision=2).background_gradient(cmap='viridis')
+df = pd.read_csv("car_data.csv")
+df['Car_Age'] = 2025 - df['Year']
+df = pd.get_dummies(df.drop(['Year', 'Car_Name'], axis=1), drop_first=True)
+df = df.loc[:, ~df.columns.str.startswith('Car_Name_')]
+df = pd.read_csv("car_data.csv")
+df['Car_Age'] = 2025 - df['Year']
+df = pd.get_dummies(df.drop(['Year', 'Car_Name'], axis=1), drop_first=True)
+df = df.loc[:, ~df.columns.str.startswith('Car_Name_')]
+import pandas as pd
+
+df = pd.read_csv('car_data.csv')
+
+mean_values = df[['Selling_Price', 'Present_Price', 'Driven_kms', 'Owner']].mean()
+std_values = df[['Selling_Price', 'Present_Price', 'Driven_kms', 'Owner']].std()
+
+print("Means:")
+print(mean_values)
+print("\nStandard Deviations:")
+print(std_values)
+
+import pandas as pd
+
+df = pd.read_csv('car_data.csv')
+
+summary = df.groupby('Car_Name').agg({
+    'Year': ['min', 'max'],
+    'Selling_Price': ['mean', 'std', 'min', 'max'],
+    'Present_Price': ['mean', 'std'],
+    'Driven_kms': ['mean', 'std'],
+    'Owner': ['mean']
+}).reset_index()
+
+summary.columns = ['Car_Name', 'Year_Min', 'Year_Max',
+                   'Selling_Price_Mean', 'Selling_Price_Std', 'Selling_Price_Min', 'Selling_Price_Max',
+                   'Present_Price_Mean', 'Present_Price_Std',
+                   'Kms_Driven_Mean', 'Kms_Driven_Std',
+                   'Owner_Mean']
+
+print(summary.head(10))
+df['Car_Age'] = 2025 - df['Year']
+import plotly.express as px
+
+fig = px.scatter(df, 
+                 x='Present_Price', 
+                 y='Selling_Price',
+                 color='Fuel_Type',
+                 size='Car_Age',
+                 hover_data=['Driven_kms', 'Owner', 'Transmission'])
+fig.update_layout(title='Car Comparison: Present vs Selling Price',
+                  xaxis_title='Present Price ',
+                  yaxis_title='Selling Price ')
+fig.show()
+top_cars = df[['Car_Name', 'Present_Price', 'Selling_Price', 'Driven_kms', 'Owner', 'Fuel_Type', 'Transmission']]
+top_cars = top_cars.sort_values(by='Selling_Price', ascending=False).head(10)
+top_cars.style.set_caption("Top 10 Highest Selling Cars") \
+       .background_gradient(cmap="Blues") \
+       .format({'Present_Price': '₹ {:.2f} L', 'Selling_Price': '₹ {:.2f} L'})
+df['Depreciation'] = df['Present_Price'] - df['Selling_Price']
+df['Depreciation_%'] = (df['Depreciation'] / df['Present_Price']) * 100
+
+compare_df = df[['Car_Name', 'Present_Price', 'Selling_Price', 'Depreciation', 'Depreciation_%']]
+compare_df = compare_df.sort_values(by='Depreciation_%', ascending=False).head(10)
+compare_df.style.set_caption("Top 10 Cars with Highest Depreciation") \
+         .bar(subset='Depreciation_%', color='#ffa07a') \
+         .format({'Present_Price': '₹ {:.2f} L', 'Selling_Price': '₹ {:.2f} L', 'Depreciation_%': '{:.1f}%'})
+df['Car_Age'] = 2025 - df['Year']
+summary = {
+    'Total Cars': len(df),
+    'Avg Present Price': df['Present_Price'].mean(),
+    'Avg Selling Price': df['Selling_Price'].mean(),
+    'Avg Car Age': df['Car_Age'].mean(),
+    'Fuel Type Counts': df['Fuel_Type'].value_counts().to_dict()
+}
+pd.DataFrame.from_dict(summary, orient='index', columns=['Value']).style.set_caption("Market Summary ?")
+fig2 = px.pie(df, 
+              names='Fuel_Type', 
+              title=" Fuel Type Distribution in Market",
+              hole=0.4,
+              color_discrete_sequence=px.colors.sequential.RdBu)
+
+fig2.show()
+fig2 = px.pie(df, 
+              names='Fuel_Type', 
+              title=" Fuel Type Distribution in Market",
+              hole=0.4,
+              color_discrete_sequence=px.colors.sequential.RdBu)
+
+fig2.show()
+fig3 = px.box(df, 
+              x='Transmission', 
+              y='Selling_Price',
+              title="Selling Price by Transmission Type",
+              color='Transmission')
+
+fig3.show()
+fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
+axes = axes.ravel()
+
+for i, column in enumerate(categorical_cols):
+    categorical_cols = X.select_dtypes(include=['object']).columns.tolist()
+
+    sns.countplot(x=column, data=df, palette='Set2', ax=axes[i], saturation=0.9)
+    for container in axes[i].containers:
+        axes[i].bar_label(container, color='black', size=10)
+    axes[i].set_title(f'{column.replace("_", " ")}', fontsize=12)
+    axes[i].set_xlabel('')
+    axes[i].set_ylabel('Count')
+
+plt.tight_layout()
+plt.show()
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+cat_cols = ['Fuel_Type', 'Selling_type', 'Transmission', 'Owner']
+
+for i in range(0, len(cat_cols), 2):
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+    sns.countplot(x=cat_cols[i], data=df, palette='pastel', ax=axes[0])
+    axes[0].set_title(cat_cols[i])
+    axes[0].set_xlabel('')
+    axes[0].set_ylabel('Count')
+    for container in axes[0].containers:
+        axes[0].bar_label(container, color='black', fontsize=10)
+    
+    if i+1 < len(cat_cols):
+        sns.countplot(x=cat_cols[i+1], data=df, palette='pastel', ax=axes[1])
+        axes[1].set_title(cat_cols[i+1])
+        axes[1].set_xlabel('')
+        axes[1].set_ylabel('Count')
+        for container in axes[1].containers:
+            axes[1].bar_label(container, color='black', fontsize=10)
+    else:
+        axes[1].axis('off')
+    
+    plt.tight_layout()
+    plt.show()
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+plt.figure(figsize=(12, 6))
+sns.barplot(x='Year', y='Selling_Price', data=df, errorbar=None, palette='pastel')
+plt.title('Average Selling Price by Year', fontsize=16)
+plt.xlabel('Year', fontsize=12)
+plt.ylabel('Average Selling Price', fontsize=12)
+plt.xticks(rotation=45)
+plt.grid(axis='y', linestyle='--', alpha=0.6)
+plt.tight_layout()
+plt.show()
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+plt.figure(figsize=(14, 6))
+
+plt.subplot(1, 2, 1)
+plt.title('Distribution of Selling Price', fontsize=16)
+sns.histplot(df['Selling_Price'], kde=True, color='skyblue')
+plt.xlabel('Selling Price')
+plt.ylabel('Frequency')
+
+plt.subplot(1, 2, 2)
+plt.title('Spread of Selling Price', fontsize=16)
+sns.boxplot(y=df['Selling_Price'], color='lightgreen')
+plt.ylabel('Selling Price')
+
+plt.tight_layout()
+plt.show()
+
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(25, 6))
+
+
+plt.subplot(1, 3, 2)
+fuel_counts = df['Fuel_Type'].value_counts()
+plt.bar(fuel_counts.index, fuel_counts.values, color='lightcoral')
+plt.title('Fuel Type Histogram', fontsize=16)
+plt.xlabel('Fuel Type', fontsize=12)
+plt.ylabel('Frequency of Fuel Type', fontsize=12)
+
+plt.subplot(1, 3, 3)
+
+transmission_counts = df['Transmission'].value_counts()
+plt.bar(transmission_counts.index, transmission_counts.values, color='lightgreen')
+plt.title('Transmission Type Histogram', fontsize=16)
+plt.xlabel('Transmission Type', fontsize=12)
+plt.ylabel('Frequency of Transmission Type', fontsize=12)
+
+plt.tight_layout()
+plt.show()
+
+X = df.drop('Selling_Price', axis=1)
+y = df['Selling_Price']
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_train_encoded = pd.get_dummies(X_train, drop_first=True)
+X_test_encoded = pd.get_dummies(X_test, drop_first=True)
+
+
+X_test_encoded = X_test_encoded.reindex(columns=X_train_encoded.columns, fill_value=0)
+
+model = XGBRegressor()
+model.fit(X_train_encoded, y_train)
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from xgboost import XGBRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, r2_score
+
+
+X = df.drop('Selling_Price', axis=1)
+y = df['Selling_Price']
+
+
+X_encoded = pd.get_dummies(X, drop_first=True)
+
+
+X_train, X_test, y_train, y_test = train_test_split(X_encoded, y, test_size=0.2, random_state=42)
+
+
+model = XGBRegressor()
+model.fit(X_train, y_train)
+
+
+y_pred = model.predict(X_test)
+
+
+from math import sqrt
+rmse = sqrt(mean_squared_error(y_test, y_pred))
+
+r2 = r2_score(y_test, y_pred)
+
+print(f"RMSE: {rmse:.2f}")
+print(f"R² Score: {r2:.2f}")
+
+
+plt.figure(figsize=(10, 6))
+sns.scatterplot(x=y_test, y=y_pred, color='teal', alpha=0.6)
+plt.xlabel("Actual Selling Price")
+plt.ylabel("Predicted Selling Price")
+plt.title("Actual vs Predicted Selling Price")
+plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], color='red', linestyle='--')  # خط مثالي
+plt.grid(True, linestyle='--', alpha=0.5)
+plt.tight_layout()
+plt.show()
+
+import joblib
+
+
+joblib.dump(model, 'car_price_model.joblib')
+                   
